@@ -1,15 +1,25 @@
 <template>
   <div class="product-card">
-    <RouterLink :to="`/products/${product.id}`" class="product-image-link">
-      <div class="product-image-wrap">
-        <img
-          :src="product.image_url"
-          :alt="product.name"
-          class="product-image"
-          @error="onImageError"
-        />
-      </div>
-    </RouterLink>
+    <div class="product-image-link" @click.prevent="handleImageClick">
+      <RouterLink :to="`/products/${product.id}`" class="product-image-anchor">
+        <div class="product-image-wrap">
+          <img
+            :src="product.image_url"
+            :alt="product.name"
+            class="product-image"
+            @error="onImageError"
+          />
+          <button class="zoom-btn" @click.stop.prevent="openZoom" aria-label="Zoom image">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="11" y1="8" x2="11" y2="14"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </button>
+        </div>
+      </RouterLink>
+    </div>
     <div class="product-body">
       <span class="category-badge">{{ product.category }}</span>
       <RouterLink :to="`/products/${product.id}`" class="product-name-link">
@@ -21,9 +31,32 @@
       </button>
     </div>
   </div>
+
+  <Teleport to="body">
+    <Transition name="zoom-overlay">
+      <div v-if="zoomed" class="zoom-overlay" @click="closeZoom" @keydown.esc="closeZoom">
+        <button class="zoom-close-btn" @click="closeZoom" aria-label="Close zoom">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div class="zoom-image-wrap" @click.stop>
+          <img
+            :src="product.image_url"
+            :alt="product.name"
+            class="zoom-image"
+            @error="onImageError"
+          />
+        </div>
+        <p class="zoom-caption">{{ product.name }}</p>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import type { Product } from '../types';
 
@@ -34,6 +67,24 @@ defineProps<{
 defineEmits<{
   (e: 'add-to-cart', product: Product): void;
 }>();
+
+const zoomed = ref(false);
+
+function openZoom() {
+  zoomed.value = true;
+}
+
+function closeZoom() {
+  zoomed.value = false;
+}
+
+function handleImageClick() {
+  // intentionally empty — lets RouterLink handle navigation
+}
+
+watch(zoomed, (val) => {
+  document.body.style.overflow = val ? 'hidden' : '';
+});
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -67,10 +118,15 @@ function onImageError(event: Event) {
 
 .product-image-link {
   display: block;
+}
+
+.product-image-anchor {
+  display: block;
   text-decoration: none;
 }
 
 .product-image-wrap {
+  position: relative;
   width: 100%;
   height: 200px;
   overflow: hidden;
@@ -86,6 +142,35 @@ function onImageError(event: Event) {
 
 .product-card:hover .product-image {
   transform: scale(1.03);
+}
+
+.zoom-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.15s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+.product-image-wrap:hover .zoom-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.zoom-btn:hover {
+  background-color: #fff;
 }
 
 .product-body {
@@ -153,5 +238,89 @@ function onImageError(event: Event) {
 
 .add-to-cart-btn:active {
   background-color: #000;
+}
+
+/* Zoom overlay — rendered via Teleport, so not scoped to card */
+</style>
+
+<style>
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  cursor: zoom-out;
+}
+
+.zoom-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.zoom-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+.zoom-image-wrap {
+  max-width: min(640px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.zoom-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.zoom-caption {
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Transition */
+.zoom-overlay-enter-active,
+.zoom-overlay-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.zoom-overlay-enter-from,
+.zoom-overlay-leave-to {
+  opacity: 0;
+}
+
+.zoom-overlay-enter-active .zoom-image-wrap,
+.zoom-overlay-leave-active .zoom-image-wrap {
+  transition: transform 0.2s ease;
+}
+
+.zoom-overlay-enter-from .zoom-image-wrap,
+.zoom-overlay-leave-to .zoom-image-wrap {
+  transform: scale(0.92);
 }
 </style>

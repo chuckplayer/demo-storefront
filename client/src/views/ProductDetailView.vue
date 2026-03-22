@@ -16,14 +16,44 @@
     </div>
 
     <div v-else-if="product" class="product-detail">
-      <div class="product-image-wrap">
+      <div class="product-image-wrap" @click="openZoom">
         <img
           :src="product.image_url"
           :alt="product.name"
           class="product-image"
           @error="onImageError"
         />
+        <button class="zoom-btn" @click.stop="openZoom" aria-label="Zoom image">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="11" y1="8" x2="11" y2="14"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </button>
       </div>
+
+      <Teleport to="body">
+        <Transition name="zoom-overlay">
+          <div v-if="zoomed" class="zoom-overlay" @click="closeZoom">
+            <button class="zoom-close-btn" @click="closeZoom" aria-label="Close zoom">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <div class="zoom-image-wrap" @click.stop>
+              <img
+                :src="product.image_url"
+                :alt="product.name"
+                class="zoom-image"
+                @error="onImageError"
+              />
+            </div>
+            <p class="zoom-caption">{{ product.name }}</p>
+          </div>
+        </Transition>
+      </Teleport>
 
       <div class="product-info">
         <span class="category-badge">{{ product.category }}</span>
@@ -58,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
 import axios from 'axios';
 import type { Product } from '../types';
@@ -71,6 +101,19 @@ const product = ref<Product | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const quantity = ref(1);
+const zoomed = ref(false);
+
+function openZoom() {
+  zoomed.value = true;
+}
+
+function closeZoom() {
+  zoomed.value = false;
+}
+
+watch(zoomed, (val) => {
+  document.body.style.overflow = val ? 'hidden' : '';
+});
 
 onMounted(async () => {
   try {
@@ -164,23 +207,52 @@ function handleAddToCart() {
 }
 
 .product-image-wrap {
+  position: relative;
+  display: inline-block;
   border-radius: 10px;
   overflow: hidden;
   background-color: #f0f0ed;
   border: 1px solid #e5e5e3;
   box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.04);
-  aspect-ratio: 4/3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  box-sizing: border-box;
+  padding: 0.6rem;
+  cursor: zoom-in;
+  max-width: 100%;
 }
 
 .product-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.zoom-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.15s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+.product-image-wrap:hover .zoom-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.zoom-btn:hover {
+  background-color: #fff;
 }
 
 .product-info {
@@ -310,5 +382,86 @@ function handleAddToCart() {
 .add-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+</style>
+
+<style>
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  cursor: zoom-out;
+}
+
+.zoom-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.zoom-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+.zoom-image-wrap {
+  max-width: min(640px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.zoom-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.zoom-caption {
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.zoom-overlay-enter-active,
+.zoom-overlay-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.zoom-overlay-enter-from,
+.zoom-overlay-leave-to {
+  opacity: 0;
+}
+
+.zoom-overlay-enter-active .zoom-image-wrap,
+.zoom-overlay-leave-active .zoom-image-wrap {
+  transition: transform 0.2s ease;
+}
+
+.zoom-overlay-enter-from .zoom-image-wrap,
+.zoom-overlay-leave-to .zoom-image-wrap {
+  transform: scale(0.92);
 }
 </style>
