@@ -1,26 +1,39 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────
 node_modules/
+client/node_modules/
+server/node_modules/
 .pnpm-store/
 
-# Build output
+# ── Build Output ──────────────────────────────────────────
 dist/
 client/dist/
 server/dist/
 
-# Database
+# ── Database ──────────────────────────────────────────────
+# Claude should work from schema in db.ts, not the live file
 server/data/
+*.db
+*.db-shm
+*.db-wal
 
-# Environment
+# ── Cache & Compiled ──────────────────────────────────────
+client/.vite/
+*.tsbuildinfo
+
+# ── Lockfiles ─────────────────────────────────────────────
+pnpm-lock.yaml
+
+# ── Environment ───────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────
 *.log
 npm-debug.log*
 pnpm-debug.log*
 
-# Editor
+# ── Editor ────────────────────────────────────────────────
 .vscode/
 .idea/
 *.suo
@@ -29,9 +42,20 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-# OS
-.DS_Store
+# ── OS Artifacts (Windows) ────────────────────────────────
 Thumbs.db
+desktop.ini
+ehthumbs.db
 
-# TypeScript
-*.tsbuildinfo
+# ── OS Artifacts (macOS) ──────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon\r
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
