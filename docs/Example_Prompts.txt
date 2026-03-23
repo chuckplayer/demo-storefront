@@ -1,0 +1,90 @@
+
+
+
+Fix the cart total in client/src/stores/cart.ts. 
+The total computed property is hardcoded to return 0. 
+It should calculate the sum of (item.product.price * item.quantity) 
+across all items in the cart, rounded to 2 decimal places using 
+Math.round. The CartItem type in types/index.ts already has 
+product.price and quantity.
+
+
+
+Add a "Low Stock" badge to ProductCard.vue that 
+appears when product.stock_quantity is 8 or less. Position it 
+as an overlay in the top-left corner of the product image. 
+Use amber/warning styling (#f59e0b background, white text) 
+consistent with the card's existing design language. 
+The Product type in types/index.ts already has stock_quantity.
+
+
+Update the product info page to show the low stock warning.
+
+
+In client/src/components/CartSidebar.vue, update 
+the "Checkout" button so that clicking it closes the cart 
+sidebar (cartStore.toggleCart()) and navigates to /checkout 
+using Vue Router's useRouter(). Add the /checkout route to 
+client/src/router/index.ts pointing to a new view file 
+client/src/views/CheckoutView.vue — create that file as a 
+minimal placeholder that just renders <div>Checkout coming soon</div> 
+for now. The router imports are already established in index.ts 
+as a pattern to follow.
+
+
+
+/agent-plan Implement the complete checkout and payment 
+processing feature for the storefront.
+
+Replace the placeholder CheckoutView.vue with a full 
+checkout form that collects:
+- Customer name and email
+- Shipping address: street, city, state, zip
+- Payment section with a card type toggle: Visa or Mastercard
+  - When Visa is selected, auto-fill the card number field 
+    with: 4111 1111 1111 1111
+  - When Mastercard is selected, auto-fill with: 
+    5500 0000 0000 0004
+  - Expiry field pre-filled with 12/27, CVV pre-filled 
+    with 123 (display only, not validated)
+- A "Place Order" button that submits to POST /api/orders
+
+Update POST /api/orders in server/src/routes/orders.ts to:
+- Accept customer_name and shipping_address in the request 
+  body alongside the existing customer_email and items
+- Simulate payment processing: generate a random number — 
+  70% of the time approve, 30% decline
+- On approval: generate an order_number in the format 
+  ORD-{timestamp}, persist the order to the database with 
+  status "confirmed", return 201 with the order data 
+  including order_number
+- On decline: return HTTP 402 with a JSON error that 
+  looks like a real payment gateway message — vary the 
+  decline reason randomly among: "Insufficient funds", 
+  "Card issuer declined the transaction", 
+  "Do not honor", "Transaction limit exceeded"
+- Do NOT persist declined orders to the database
+
+Update the orders table in server/src/db.ts to add 
+columns: customer_name TEXT, shipping_address TEXT, 
+order_number TEXT. Use ALTER TABLE IF the table already 
+exists, or handle it in the CREATE TABLE statement with 
+a schema migration approach that won't fail on restart.
+
+Update OrderConfirmationView.vue to:
+- Extract the order ID from route.params.id and fetch 
+  from GET /api/orders/:id on mount (the route and 
+  handler already exist)
+- Display the order_number, list each item with name 
+  and quantity, and show the calculated order total
+- Replace all the placeholder comment text with real data
+
+On the CheckoutView, on a 402 decline response:
+- Stay on the checkout page — do NOT clear the form
+- Show an inline error banner with the gateway's decline 
+  message and a "Try Again" note
+- The card pre-fill should still be present so the user 
+  can resubmit immediately
+
+On success, call cartStore.clearCart() and navigate 
+to /orders/{orderId}.
