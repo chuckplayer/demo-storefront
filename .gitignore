@@ -59,3 +59,6 @@ Icon\r
 .TemporaryItems
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+
+# ── Claude Artifacts ──────────────────────────────────
+.claude/settings.local.json
