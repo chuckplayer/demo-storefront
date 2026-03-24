@@ -33,58 +33,43 @@ as a pattern to follow.
 
 
 
-/agent-plan Implement the complete checkout and payment 
-processing feature for the storefront.
+/scaffold Add a complete checkout and payment processing feature.
 
-Replace the placeholder CheckoutView.vue with a full 
-checkout form that collects:
-- Customer name and email
-- Shipping address: street, city, state, zip
-- Payment section with a card type toggle: Visa or Mastercard
-  - When Visa is selected, auto-fill the card number field 
-    with: 4111 1111 1111 1111
-  - When Mastercard is selected, auto-fill with: 
-    5500 0000 0000 0004
-  - Expiry field pre-filled with 12/27, CVV pre-filled 
-    with 123 (display only, not validated)
-- A "Place Order" button that submits to POST /api/orders
+New route /checkout with CheckoutView.vue:
+- Customer name, email, shipping address (street, city, state, zip)
+- Card type toggle: Visa or Mastercard
+  - Visa auto-fills card number: 4111 1111 1111 1111
+  - Mastercard auto-fills: 5500 0000 0000 0004
+  - Expiry pre-filled 12/27, CVV pre-filled 123 (display only)
+- Place Order button submits to POST /api/orders
+- On 402 decline: show inline error with gateway message, 
+  keep form populated, do not clear card pre-fill
+- On success: call cartStore.clearCart(), navigate to /orders/:id
 
-Update POST /api/orders in server/src/routes/orders.ts to:
-- Accept customer_name and shipping_address in the request 
-  body alongside the existing customer_email and items
-- Simulate payment processing: generate a random number — 
-  70% of the time approve, 30% decline
-- On approval: generate an order_number in the format 
-  ORD-{timestamp}, persist the order to the database with 
-  status "confirmed", return 201 with the order data 
-  including order_number
-- On decline: return HTTP 402 with a JSON error that 
-  looks like a real payment gateway message — vary the 
-  decline reason randomly among: "Insufficient funds", 
+Update POST /api/orders in server/src/routes/orders.ts:
+- Accept customer_name and shipping_address in request body
+- Simulate payment: 70% approve, 30% decline using Math.random()
+- On approval: generate order_number as ORD-{timestamp}, 
+  persist with status "confirmed", return 201 with order data
+- On decline: return HTTP 402 with a realistic gateway message,
+  vary randomly among: "Insufficient funds", 
   "Card issuer declined the transaction", 
   "Do not honor", "Transaction limit exceeded"
-- Do NOT persist declined orders to the database
+- Do not persist declined orders
 
-Update the orders table in server/src/db.ts to add 
-columns: customer_name TEXT, shipping_address TEXT, 
-order_number TEXT. Use ALTER TABLE IF the table already 
-exists, or handle it in the CREATE TABLE statement with 
-a schema migration approach that won't fail on restart.
+Update server/src/db.ts orders table to add columns:
+- customer_name TEXT
+- shipping_address TEXT  
+- order_number TEXT
+Use ALTER TABLE ADD COLUMN IF NOT EXISTS for each — 
+the table already exists and must not be dropped.
 
-Update OrderConfirmationView.vue to:
-- Extract the order ID from route.params.id and fetch 
-  from GET /api/orders/:id on mount (the route and 
-  handler already exist)
-- Display the order_number, list each item with name 
-  and quantity, and show the calculated order total
-- Replace all the placeholder comment text with real data
+Update OrderConfirmationView.vue:
+- Fetch from GET /api/orders/:id on mount using route.params.id
+- Display order_number, line items with name and quantity, 
+  and calculated total
+- Replace all placeholder comment text with real data
 
-On the CheckoutView, on a 402 decline response:
-- Stay on the checkout page — do NOT clear the form
-- Show an inline error banner with the gateway's decline 
-  message and a "Try Again" note
-- The card pre-fill should still be present so the user 
-  can resubmit immediately
-
-On success, call cartStore.clearCart() and navigate 
-to /orders/{orderId}.
+Wire CartSidebar.vue checkout button to close the cart 
+and navigate to /checkout.
+Add /checkout route to router/index.ts pointing to CheckoutView.vue.
