@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Demo Storefront — Claude Code Project
 
 ## Project Overview
@@ -5,11 +9,20 @@ Fictional storefront for "Unnecessarily Smart Home Appliances Co."
 Vue 3 + TypeScript frontend, Express + TypeScript backend, SQLite database.
 Pnpm monorepo with two packages: `client` (port 5173) and `server` (port 3001).
 
+## Dev Commands (for reference — do not start servers, they are already running)
+```bash
+pnpm dev                        # start both client and server (concurrently)
+pnpm --filter server dev        # server only (tsx watch)
+pnpm --filter client dev        # client only (vite)
+pnpm --filter server seed       # re-seed the database
+```
+SQLite DB file: `server/data/store.db`
+
 ## CRITICAL: Development Rules (Windows & macOS)
 - **NEVER run `pnpm build`, `vue-tsc`, or any type-check commands**
 - **NEVER run `pnpm install` unless explicitly asked**
 - **NEVER start dev servers** — they are already running
-- **NEVER use `find`, `grep`, or recursive directory scans** to locate files
+- **NEVER use shell `find`, `grep`, or `rg` commands** — use the Glob/Grep tools instead
 - **NEVER run `rm`, `rm -rf`, `rd`, or `del` commands**
 - **DO NOT verify changes by running the build** — just report what you changed
 - On macOS: use `npx tsx` if `tsx` is not found directly on PATH
@@ -96,7 +109,7 @@ routes/
 | GET | /api/products | ✅ implemented |
 | GET | /api/products/:id | ✅ implemented |
 | POST | /api/orders | ⚠️ partial — needs payment logic |
-| GET | /api/orders/:id | ✅ implemented with items join |
+| GET | /api/orders/:id | ✅ implemented — items join includes `name`, `image_url`, `category` from products |
 
 ## How to Make Changes
 1. Read only the specific file(s) mentioned in the task
@@ -112,3 +125,4 @@ routes/
 - CSS is scoped per component — follow existing class naming patterns
 - No external UI libraries — plain CSS only
 - Pinia stores use the setup store pattern (ref/computed/functions, not options)
+- `@pinia/colada` is installed but not yet used — it is the intended solution for async data fetching (replaces manual `onMounted` + `axios` patterns when adopted)

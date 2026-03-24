@@ -10,12 +10,7 @@ product.price and quantity.
 
 
 
-Add a "Low Stock" badge to ProductCard.vue that 
-appears when product.stock_quantity is 8 or less. Position it 
-as an overlay in the top-left corner of the product image. 
-Use amber/warning styling (#f59e0b background, white text) 
-consistent with the card's existing design language. 
-The Product type in types/index.ts already has stock_quantity.
+/add-ui-badge components/ProductCard.vue "product.stock_quantity <= 5" "Low Stock" "#f59e0b"
 
 
 Update the product info page to show the low stock warning.
